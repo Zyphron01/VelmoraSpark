@@ -49,7 +49,7 @@ hackathon-demo-video/
 *.webm
 *.avi
 *.mkv
-screenshots/
+/screenshots/
 *.zip
 *.tar*
 *.gz
