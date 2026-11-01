@@ -284,15 +284,16 @@ ${divider}
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/85 backdrop-blur-md animate-fadeIn"
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/90 backdrop-blur-md animate-fadeIn"
     >
       {/* ── Fixed Floating Exit Cross Button (Always Visible Regardless of Scroll) ── */}
       <button
         onClick={onClose}
         aria-label="Close WhatsApp card modal"
-        className="fixed top-4 right-4 sm:top-6 sm:right-6 z-80 w-12 h-12 rounded-full bg-[#2A0E1A]/95 hover:bg-[#5C142A] text-amber-200 hover:text-white border-2 border-amber-400/70 flex items-center justify-center shadow-[0_0_25px_rgba(0,0,0,0.9),0_0_15px_rgba(255,174,52,0.4)] backdrop-blur-lg transition-all duration-200 hover:scale-110 active:scale-95 cursor-pointer group"
+        className="fixed top-4 right-4 sm:top-6 sm:right-6 z-90 w-12 h-12 rounded-full bg-[#2A0E1A]/95 hover:bg-[#5C142A] text-amber-200 hover:text-white border-2 border-amber-400/80 flex items-center justify-center shadow-[0_0_25px_rgba(0,0,0,0.9),0_0_15px_rgba(255,174,52,0.4)] backdrop-blur-lg transition-all duration-200 hover:scale-110 active:scale-95 cursor-pointer group"
+        title="Exit Card Preview (Esc)"
       >
-        <X size={24} className="group-hover:rotate-90 transition-transform duration-200 text-amber-300 group-hover:text-white" />
+        <X size={26} className="group-hover:rotate-90 transition-transform duration-200 text-amber-300 group-hover:text-white" />
       </button>
 
       <div className="relative w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-3xl border border-gold-300/40 bg-[#1A0B1A] shadow-2xl p-5 sm:p-8 space-y-6">
@@ -314,10 +315,11 @@ ${divider}
           </div>
           <button
             onClick={onClose}
-            className="px-3.5 py-1.5 rounded-full bg-white/10 hover:bg-rose-900/40 text-amber-200 hover:text-rose-200 border border-amber-400/30 hover:border-rose-400/50 flex items-center gap-1.5 text-xs font-semibold transition-all cursor-pointer"
+            aria-label="Close"
+            className="px-4 py-2 rounded-full bg-rose-950/60 hover:bg-rose-900 text-amber-200 hover:text-white border border-rose-400/60 flex items-center gap-1.5 text-xs font-bold transition-all cursor-pointer shadow-md hover:scale-105"
           >
             <X size={16} />
-            <span>Close</span>
+            <span>Close (✕)</span>
           </button>
         </div>
 
@@ -356,9 +358,9 @@ ${divider}
             </span>
             <button
               onClick={onClose}
-              className="text-[11px] text-amber-200/70 hover:text-white flex items-center gap-1 cursor-pointer transition-colors"
+              className="px-3 py-1 rounded-full bg-white/10 hover:bg-rose-950 text-amber-200 hover:text-rose-200 border border-white/20 hover:border-rose-400 text-xs flex items-center gap-1.5 cursor-pointer transition-all"
             >
-              <X size={12} /> Exit Preview
+              <X size={14} /> Close Preview
             </button>
           </div>
 
@@ -370,9 +372,18 @@ ${divider}
               borderColor: currentTpl.border,
             }}
           >
+            {/* Prominent Cross Exit Button DIRECTLY Inside Card Preview */}
+            <button
+              onClick={onClose}
+              aria-label="Exit card preview"
+              className="absolute top-3 right-3 sm:top-4 sm:right-4 z-30 w-9 h-9 rounded-full bg-black/70 hover:bg-rose-900/90 text-amber-200 hover:text-white border border-amber-400/60 hover:border-rose-400 flex items-center justify-center transition-all cursor-pointer shadow-lg hover:scale-110 group"
+              title="Close Card Preview (Esc)"
+            >
+              <X size={18} className="group-hover:rotate-90 transition-transform duration-200" />
+            </button>
+
             {/* Corner Decorative Filigrees */}
             <div className="absolute top-2 left-2 text-amber-300/40 text-xs font-serif">❖</div>
-            <div className="absolute top-2 right-2 text-amber-300/40 text-xs font-serif">❖</div>
             <div className="absolute bottom-2 left-2 text-amber-300/40 text-xs font-serif">❖</div>
             <div className="absolute bottom-2 right-2 text-amber-300/40 text-xs font-serif">❖</div>
 

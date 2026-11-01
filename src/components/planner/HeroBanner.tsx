@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Sparkles, Calendar, MapPin, Users, HeartHandshake } from 'lucide-react';
+import { Sparkles, Calendar, MapPin, Users, HeartHandshake, Crown, RotateCcw, Plus } from 'lucide-react';
 import { useApp } from '@/lib/app-store';
 import { formatINR } from '@/lib/utils';
 import { StatRing } from './StatRing';
@@ -9,11 +9,21 @@ import { EventCountdown } from './EventCountdown';
 import { Festive3DMiniatureScene } from './Festive3DMiniatureScene';
 
 export function HeroBanner() {
-  const { event, totalCommitted, totalProjected, contingencyBuffer, contingencyUsed } = useApp();
+  const {
+    event,
+    setPreset,
+    setShowCreateModal,
+    dbSource,
+    totalCommitted,
+    totalProjected,
+    contingencyBuffer,
+    contingencyUsed,
+  } = useApp();
 
   const bufferRemaining = contingencyBuffer - contingencyUsed;
   const budgetAllocationPct = Math.min(100, Math.round((totalProjected / event.totalBudget) * 100));
   const rsvpRate = Math.min(100, Math.round((event.confirmedRsvpCount / event.invitedCount) * 100));
+  const isCustom = event.isCustom || dbSource === 'local_custom';
 
   return (
     <div className="relative overflow-hidden rounded-[32px] border border-[var(--border-subtle)] bg-[var(--card)] shadow-soft p-6 sm:p-8 transition-all jharokha-arch">
@@ -48,14 +58,44 @@ export function HeroBanner() {
       <div className="relative z-10 flex items-center justify-between gap-6 flex-wrap lg:flex-nowrap">
         {/* Left: Event Details */}
         <div className="flex-1 min-w-[280px]">
-          <div className="flex items-center gap-2 mb-2 flex-wrap">
-            <span className="badge badge-terracotta text-[10px] font-bold tracking-wider uppercase flex items-center gap-1">
-              <Sparkles size={11} className="text-amber-500" />
-              Celebration Operations Active
-            </span>
-            <span className="badge badge-stone text-[10px] font-medium">
-              {event.activeWhatsappGroupsReplaced} Groups Consolidated
-            </span>
+          {/* Dual Entry Banner Option Strip */}
+          <div className="flex items-center gap-2.5 mb-3 flex-wrap">
+            {isCustom ? (
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="badge badge-terracotta text-[11px] font-bold tracking-wider uppercase flex items-center gap-1.5 py-1 px-3">
+                  <Crown size={12} className="text-amber-400" />
+                  👑 Custom Celebration · Saved in this browser
+                </span>
+                <button
+                  onClick={() => setShowCreateModal(true)}
+                  className="btn btn-sm px-3 py-1 rounded-full bg-white/10 hover:bg-white/20 text-amber-200 border border-white/20 text-xs font-semibold flex items-center gap-1 cursor-pointer transition-all"
+                >
+                  <Plus size={12} />
+                  <span>New Event</span>
+                </button>
+                <button
+                  onClick={() => setPreset('wedding')}
+                  className="text-[11px] px-3 py-1 rounded-full bg-white/5 hover:bg-white/15 text-amber-200/80 hover:text-white border border-white/10 flex items-center gap-1 cursor-pointer transition-all"
+                >
+                  <RotateCcw size={11} />
+                  <span>← Back to Demo Wedding</span>
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2.5 flex-wrap">
+                <button
+                  onClick={() => setShowCreateModal(true)}
+                  className="btn btn-sm px-4 py-1.5 rounded-full bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 hover:from-amber-300 hover:to-amber-500 text-black font-bold text-xs shadow-md shadow-amber-500/20 flex items-center gap-1.5 transition-all hover:scale-105 active:scale-95 cursor-pointer ring-2 ring-amber-400/40"
+                >
+                  <Crown size={14} className="text-black" />
+                  <span>👑 Create My Event</span>
+                </button>
+                <span className="badge badge-stone text-[10px] font-medium flex items-center gap-1">
+                  <Sparkles size={11} className="text-amber-500" />
+                  ✨ Exploring Preset Demo ({event.activeWhatsappGroupsReplaced} Groups Consolidated)
+                </span>
+              </div>
+            )}
           </div>
 
           <h1 className="font-serif text-2xl sm:text-3xl lg:text-4xl font-bold text-[var(--ink)] leading-tight mb-2">

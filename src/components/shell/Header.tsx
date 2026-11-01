@@ -30,7 +30,8 @@ export default function Header({ onOpenBrief, onCopyBrief, copied }: HeaderProps
     setActiveTab,
     executiveView, setExecutiveView,
     totalProjected, contingencyBuffer, contingencyUsed,
-    dbSource, isOrganizer, isDbSyncing
+    dbSource, isOrganizer, isDbSyncing,
+    customEvents, switchToCustomEvent, setShowCreateModal,
   } = useApp();
 
   const [showPresetMenu, setShowPresetMenu] = useState(false);
@@ -71,6 +72,12 @@ export default function Header({ onOpenBrief, onCopyBrief, copied }: HeaderProps
         <span className="sm:hidden">Read-Only</span>
       </span>
     )
+  ) : dbSource === 'local_custom' ? (
+    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-amber-500/15 text-amber-300 border border-amber-400/40">
+      <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+      <span className="hidden sm:inline">👑 Custom Celebration (Saved in Browser)</span>
+      <span className="sm:hidden">👑 Custom</span>
+    </span>
   ) : dbSource === 'error' ? (
     <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-500/30">
       <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
@@ -120,6 +127,17 @@ export default function Header({ onOpenBrief, onCopyBrief, copied }: HeaderProps
 
           {/* Controls: Desktop Inline, Mobile Compact */}
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+            {/* Direct Create Event Button */}
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="btn btn-sm px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-xl flex items-center gap-1.5 bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 hover:from-amber-300 hover:to-amber-500 text-black font-bold text-xs shadow-sm hover:scale-105 active:scale-95 transition-all cursor-pointer"
+              title="Create a custom celebration"
+            >
+              <Sparkles size={12} className="text-black" />
+              <span className="hidden sm:inline">+ Create Event</span>
+              <span className="sm:hidden">+ Event</span>
+            </button>
+
             {/* Event Preset Switcher */}
             <div className="relative">
               <button
@@ -127,10 +145,10 @@ export default function Header({ onOpenBrief, onCopyBrief, copied }: HeaderProps
                 onClick={() => setShowPresetMenu((v) => !v)}
                 className="btn btn-secondary btn-sm px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-xl flex items-center gap-1.5 border border-[var(--border-subtle)] bg-[var(--card)] shadow-2xs hover:border-[var(--primary)]"
               >
-                <span className="text-sm">{PRESETS[preset].emoji}</span>
+                <span className="text-sm">{PRESETS[preset]?.emoji || '👑'}</span>
                 <div className="text-left hidden lg:block">
-                  <div className="text-xs font-semibold leading-tight">{PRESETS[preset].label}</div>
-                  <div className="text-[9px] text-[var(--stone-400)] leading-none">{formatINR(PRESETS[preset].event.totalBudget)} · {PRESETS[preset].event.city}</div>
+                  <div className="text-xs font-semibold leading-tight">{event.isCustom ? event.title : PRESETS[preset]?.label}</div>
+                  <div className="text-[9px] text-[var(--stone-400)] leading-none">{formatINR(event.totalBudget)} · {event.city}</div>
                 </div>
                 <ChevronDown size={12} className="text-[var(--stone-400)]" />
               </button>
@@ -139,7 +157,48 @@ export default function Header({ onOpenBrief, onCopyBrief, copied }: HeaderProps
               {showPresetMenu && (
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setShowPresetMenu(false)} />
-                  <div className="absolute top-full right-0 mt-2 z-50 w-72 sm:w-80 bg-[var(--card)] text-[var(--ink)] border border-[var(--border-subtle)] rounded-2xl p-2.5 shadow-2xl animate-slide-up">
+                  <div className="absolute top-full right-0 mt-2 z-50 w-72 sm:w-80 bg-[var(--card)] text-[var(--ink)] border border-[var(--border-subtle)] rounded-2xl p-2.5 shadow-2xl animate-slide-up max-h-[85vh] overflow-y-auto">
+                    {/* Saved Custom Events Section */}
+                    {customEvents.length > 0 && (
+                      <div className="mb-2 pb-2 border-b border-[var(--border-subtle)]">
+                        <div className="px-3 py-1 flex items-center justify-between">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-amber-500">
+                            👑 My Custom Events
+                          </span>
+                          <span className="badge badge-stone text-[9px]">{customEvents.length} Saved</span>
+                        </div>
+                        <div className="space-y-1 mt-1">
+                          {customEvents.map((ce) => {
+                            const isCurrent = event.id === ce.id;
+                            return (
+                              <button
+                                key={ce.id}
+                                onClick={() => {
+                                  switchToCustomEvent(ce.id);
+                                  setShowPresetMenu(false);
+                                }}
+                                className={`w-full text-left p-2 rounded-xl border transition-all flex items-center justify-between text-xs cursor-pointer ${
+                                  isCurrent
+                                    ? 'bg-amber-500/15 border-amber-500 text-[var(--ink)] font-bold ring-1 ring-amber-500/30'
+                                    : 'bg-[var(--surface)] border-[var(--border-subtle)] hover:border-amber-400'
+                                }`}
+                              >
+                                <div className="truncate min-w-0 pr-2">
+                                  <strong className="block truncate font-serif">{ce.title}</strong>
+                                  <span className="text-[9px] text-[var(--stone-400)] block">
+                                    {ce.city} · {formatINR(ce.totalBudget)}
+                                  </span>
+                                </div>
+                                {isCurrent && (
+                                  <span className="badge badge-sage text-[8px] shrink-0">Active</span>
+                                )}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
                     <div className="px-3 py-1.5 border-b border-[var(--border-subtle)] mb-2 flex items-center justify-between">
                       <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--stone-400)]">Curated Event Presets</span>
                       <span className="badge badge-stone text-[9px]">3 Formats</span>
@@ -148,7 +207,7 @@ export default function Header({ onOpenBrief, onCopyBrief, copied }: HeaderProps
                     <div className="space-y-1.5">
                       {(Object.keys(PRESETS) as PresetKey[]).map((key) => {
                         const p = PRESETS[key];
-                        const isCurrent = preset === key;
+                        const isCurrent = !event.isCustom && preset === key;
                         return (
                           <button
                             key={key}
@@ -177,6 +236,20 @@ export default function Header({ onOpenBrief, onCopyBrief, copied }: HeaderProps
                           </button>
                         );
                       })}
+                    </div>
+
+                    {/* Launch Modal Action */}
+                    <div className="pt-2 mt-2 border-t border-[var(--border-subtle)]">
+                      <button
+                        onClick={() => {
+                          setShowPresetMenu(false);
+                          setShowCreateModal(true);
+                        }}
+                        className="w-full py-2 px-3 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-300 border border-amber-400/30 text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                      >
+                        <Sparkles size={13} />
+                        <span>+ Plan Custom Event</span>
+                      </button>
                     </div>
                   </div>
                 </>

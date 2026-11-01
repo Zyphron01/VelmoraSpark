@@ -7,12 +7,12 @@ interface CurtainOpeningProps {
   onComplete?: () => void;
 }
 
-// Versioned key ensures user sees the new realistic curtain on their next visit
-const STORAGE_KEY = 'velmora_curtain_seen_v3';
+// Versioned key ensures user sees the realistic curtain when opening the site
+const STORAGE_KEY = 'velmora_curtain_dismissed_v4';
 
 export function CurtainOpening({ onComplete }: CurtainOpeningProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [isRendered, setIsRendered] = useState(false);
+  const [isRendered, setIsRendered] = useState(true);
   const skipButtonRef = useRef<HTMLButtonElement | null>(null);
   const previousActiveElement = useRef<HTMLElement | null>(null);
 
@@ -31,9 +31,8 @@ export function CurtainOpening({ onComplete }: CurtainOpeningProps) {
     }
   }, []);
 
-  // Initialize and check sessionStorage + URL override
+  // Initialize realistic curtain sequence
   useEffect(() => {
-    let timer: NodeJS.Timeout;
     let openTimer: NodeJS.Timeout;
     let endTimer: NodeJS.Timeout;
 
@@ -44,6 +43,7 @@ export function CurtainOpening({ onComplete }: CurtainOpeningProps) {
       window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     if (prefersReducedMotion) {
+      setIsRendered(false);
       onComplete?.();
       return;
     }
@@ -51,37 +51,36 @@ export function CurtainOpening({ onComplete }: CurtainOpeningProps) {
     try {
       const urlParams = new URLSearchParams(window.location.search);
       const forceReplay = urlParams.has('replay') || urlParams.has('curtain') || urlParams.has('entrance');
-      const seen = sessionStorage.getItem(STORAGE_KEY);
+      const dismissed = sessionStorage.getItem(STORAGE_KEY);
 
-      if (!seen || forceReplay) {
-        sessionStorage.setItem(STORAGE_KEY, 'true');
-
-        if (typeof document !== 'undefined' && document.activeElement instanceof HTMLElement) {
-          previousActiveElement.current = document.activeElement;
-        }
-
-        timer = setTimeout(() => {
-          setIsRendered(true);
-        }, 30);
-
-        // Allow user 1.5 seconds of poise to admire the majestic velvet before parting
-        openTimer = setTimeout(() => {
-          setIsOpen(true);
-        }, 1500);
-
-        // Complete parting and unmount
-        endTimer = setTimeout(() => {
-          setIsRendered(false);
-          restoreFocus();
-          onComplete?.();
-        }, 3300);
+      // If user previously dismissed the curtain in this tab and didn't request replay, bypass
+      if (dismissed === 'true' && !forceReplay) {
+        setIsRendered(false);
+        onComplete?.();
+        return;
       }
+
+      if (typeof document !== 'undefined' && document.activeElement instanceof HTMLElement) {
+        previousActiveElement.current = document.activeElement;
+      }
+
+      // Allow 1.3 seconds of royal poise to admire the majestic velvet before parting
+      openTimer = setTimeout(() => {
+        setIsOpen(true);
+      }, 1300);
+
+      // Complete parting and unmount gracefully
+      endTimer = setTimeout(() => {
+        setIsRendered(false);
+        restoreFocus();
+        onComplete?.();
+      }, 3000);
     } catch {
+      setIsRendered(false);
       onComplete?.();
     }
 
     return () => {
-      clearTimeout(timer);
       clearTimeout(openTimer);
       clearTimeout(endTimer);
     };
@@ -155,8 +154,11 @@ export function CurtainOpening({ onComplete }: CurtainOpeningProps) {
       role="dialog"
       aria-modal="true"
       aria-label="Grand Royal Ceremonial Entrance"
-      className={`fixed inset-0 z-50 pointer-events-none flex overflow-hidden select-none transition-opacity duration-700 ${
-        isOpen ? 'opacity-0' : 'opacity-100'
+      onClick={() => {
+        if (!isOpen) handleSkip();
+      }}
+      className={`fixed inset-0 z-50 flex overflow-hidden select-none transition-opacity duration-700 cursor-pointer ${
+        isOpen ? 'opacity-0 pointer-events-none' : 'opacity-100 pointer-events-auto'
       }`}
       style={{
         pointerEvents: isOpen ? 'none' : 'auto',
@@ -454,6 +456,9 @@ export function CurtainOpening({ onComplete }: CurtainOpeningProps) {
           </p>
           <span className="text-[10px] text-amber-200/70 tracking-widest uppercase block mt-1">
             Celebration Operations Unfolding
+          </span>
+          <span className="text-[10px] text-amber-300/90 tracking-wide inline-block mt-2 px-3.5 py-1 rounded-full bg-black/50 border border-amber-400/30 backdrop-blur-xs shadow-md">
+            Click anywhere or press Esc to enter
           </span>
         </div>
       </div>

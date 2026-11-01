@@ -12,6 +12,7 @@ import { ChatPanel } from '@/components/chat/ChatPanel';
 import { FestivePetalCanvas } from '@/components/ui/FestivePetalCanvas';
 import { CurtainOpening, replayCurtainEntrance } from '@/components/ui/CurtainOpening';
 import { CelebrationMoment } from '@/components/ui/CelebrationMoment';
+import { CreateEventModal } from '@/components/planner/CreateEventModal';
 import { useApp } from '@/lib/app-store';
 import { formatINR } from '@/lib/utils';
 import type { TabId } from '@/types/event';
@@ -31,6 +32,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     executiveView,
     totalCommitted, totalProjected, contingencyBuffer, contingencyUsed,
     scenarios, runSheet,
+    showCreateModal, setShowCreateModal,
   } = useApp();
 
   const [copied, setCopied] = useState(false);
@@ -271,6 +273,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
       {/* ── Auspicious Diya + Petal Burst Celebration Moment ── */}
       <CelebrationMoment />
+
+      {/* ── Judge-Ready Custom Celebration Creation Modal ── */}
+      <CreateEventModal isOpen={showCreateModal} onClose={() => setShowCreateModal(false)} />
 
       {/* ── Floating AI Celebration Concierge Slide-over Drawer ── */}
       <ChatPanel />

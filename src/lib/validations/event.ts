@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export const EventCategorySchema = z.enum(['wedding', 'college_fest', 'milestone_birthday']);
+export const EventCategorySchema = z.enum(['wedding', 'college_fest', 'milestone_birthday', 'celebration', 'other']);
 
 export const EventPlanSchema = z.object({
   id: z.string().min(1),

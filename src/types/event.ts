@@ -1,6 +1,6 @@
 // ─── Velmora Spark — Domain Types ────────────────────────────────────────────
 
-export type EventCategory = 'wedding' | 'college_fest' | 'milestone_birthday';
+export type EventCategory = 'wedding' | 'college_fest' | 'milestone_birthday' | 'celebration' | 'other';
 
 export interface EventPlan {
   id: string;
@@ -13,6 +13,7 @@ export interface EventPlan {
   totalBudget: number; // in INR
   contingencyReservePercent: number;
   activeWhatsappGroupsReplaced: number;
+  isCustom?: boolean;
 }
 
 // ─── AI Co-Planner ────────────────────────────────────────────────────────────

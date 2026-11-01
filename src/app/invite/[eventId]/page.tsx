@@ -139,7 +139,41 @@ function GuestInviteContent({ params }: PageProps) {
   const [submitted, setSubmitted] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+  // Dynamic custom event metadata from browser workspace
+  const [customEventMeta, setCustomEventMeta] = useState<{ title?: string; city?: string; date?: string } | null>(null);
+
+  React.useEffect(() => {
+    try {
+      const rawCustomState = localStorage.getItem(`velmora_custom_state_${eventId}`);
+      if (rawCustomState) {
+        const parsed = JSON.parse(rawCustomState);
+        if (parsed.event) {
+          setCustomEventMeta({
+            title: parsed.event.title,
+            city: parsed.event.city,
+            date: parsed.event.date,
+          });
+          return;
+        }
+      }
+      const rawState = localStorage.getItem(STORAGE_KEY);
+      if (rawState) {
+        const parsed = JSON.parse(rawState);
+        if (parsed.event && (parsed.event.id === eventId || parsed.event.isCustom)) {
+          setCustomEventMeta({
+            title: parsed.event.title,
+            city: parsed.event.city,
+            date: parsed.event.date,
+          });
+        }
+      }
+    } catch {}
+  }, [eventId]);
+
   const t = CONTENT[lang];
+  const displayTitle = customEventMeta?.title ? `${customEventMeta.title} Invitation` : t.title;
+  const displayVenue = customEventMeta?.city ? `${customEventMeta.city} Grand Banquet & Lawns` : t.venue;
+  const displayDate = customEventMeta?.date || t.date;
 
   function toggleTag(tag: AccessibilityTag) {
     setAccessibilityTags((prev) =>
@@ -307,7 +341,7 @@ function GuestInviteContent({ params }: PageProps) {
           </div>
 
           <h1 className="font-serif text-2xl sm:text-3xl font-bold mb-3 leading-snug">
-            {t.title}
+            {displayTitle}
           </h1>
 
           <p className="text-xs sm:text-sm text-white/80 leading-relaxed mb-6 font-light">
@@ -319,7 +353,7 @@ function GuestInviteContent({ params }: PageProps) {
             <div className="flex items-start gap-2.5">
               <Calendar size={15} className="text-[var(--accent)] mt-0.5 shrink-0" />
               <div>
-                <div className="font-semibold text-white">{t.date}</div>
+                <div className="font-semibold text-white">{displayDate}</div>
                 <div className="text-[11px] text-white/60">Date</div>
               </div>
             </div>
@@ -333,7 +367,7 @@ function GuestInviteContent({ params }: PageProps) {
             <div className="flex items-start gap-2.5">
               <MapPin size={15} className="text-[var(--accent)] mt-0.5 shrink-0" />
               <div>
-                <div className="font-semibold text-white">{t.venue}</div>
+                <div className="font-semibold text-white">{displayVenue}</div>
                 <div className="text-[11px] text-white/60">Venue</div>
               </div>
             </div>

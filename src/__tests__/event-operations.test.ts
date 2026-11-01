@@ -19,9 +19,12 @@ describe('Event Operations & Command Center Upgrades (Unit Tests)', () => {
 
     it('identifies same-day celebration accurately', () => {
       const today = new Date();
-      const isoToday = today.toISOString().split('T')[0];
+      const year = today.getFullYear();
+      const month = String(today.getMonth() + 1).padStart(2, '0');
+      const day = String(today.getDate()).padStart(2, '0');
+      const localIsoToday = `${year}-${month}-${day}`;
 
-      const target = new Date(`${isoToday}T17:00:00`);
+      const target = new Date(`${localIsoToday}T17:00:00`);
       const isSameDay =
         target.getFullYear() === today.getFullYear() &&
         target.getMonth() === today.getMonth() &&

@@ -57,7 +57,7 @@ export async function POST(req: NextRequest) {
 
     // 3. Organizer Authentication & Authorization
     const matchedPresetEntry = Object.entries(PRESETS).find(([, p]) => p.event.id === eventId);
-    const isDemoEvent = Boolean(matchedPresetEntry);
+    const isDemoEvent = Boolean(matchedPresetEntry) || eventId.startsWith('custom-');
 
     if (!isDemoEvent) {
       const auth = verifyEventAccess(req, eventId);
@@ -261,7 +261,7 @@ export async function POST(req: NextRequest) {
       },
     };
 
-    // 5. Generate Response via Gemini (with graceful demo fallback if offline or key unconfigured)
+    // 5. Generate Response via Gemini (with graceful grounded fallback if offline, rate limited, or key unconfigured)
     let aiResponse;
     try {
       aiResponse = await generateChatResponse({
@@ -271,7 +271,7 @@ export async function POST(req: NextRequest) {
         language,
       });
     } catch (err: unknown) {
-      if (isDemoEvent && (err instanceof GeminiServiceUnavailableError || err instanceof GeminiApiError)) {
+      if (isDemoEvent) {
         aiResponse = {
           reply: generateDeterministicOperationalReply(prompt, eventContext),
           model: 'grounded-operational-engine (demo fallback)',

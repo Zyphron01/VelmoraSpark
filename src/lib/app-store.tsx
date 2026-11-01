@@ -10,6 +10,7 @@ import React, {
 } from 'react';
 import type {
   EventPlan,
+  EventCategory,
   PlanSuggestion,
   BudgetLineItem,
   CateringMathModel,
@@ -29,6 +30,15 @@ const STORAGE_KEY = 'velmora_spark_state_v1';
 // ─── Context Shape ────────────────────────────────────────────────────────────
 
 export type FestiveThemeTemplate = 'rajputana' | 'carnivale' | 'jubilee' | 'kalyanam';
+
+export interface CreateCustomEventInput {
+  name: string;
+  category: EventCategory;
+  date: string;
+  city: string;
+  invitedCount: number;
+  totalBudget: number;
+}
 
 interface AppStore {
   preset: PresetKey;
@@ -57,10 +67,17 @@ interface AppStore {
   executiveView: boolean;
   setExecutiveView: React.Dispatch<React.SetStateAction<boolean>>;
 
+  // Custom Event Workspace
+  customEvents: EventPlan[];
+  createCustomEvent: (input: CreateCustomEventInput) => { id: string; success: boolean };
+  switchToCustomEvent: (id: string) => void;
+  showCreateModal: boolean;
+  setShowCreateModal: (v: boolean) => void;
+
   // Real Database Hydration & Auth State
   isDbSyncing: boolean;
   isOrganizer: boolean;
-  dbSource: 'neon' | 'local_demo' | 'error';
+  dbSource: 'neon' | 'local_demo' | 'error' | 'local_custom';
   hydrationError: string | null;
   organizerKey: string | null;
   setOrganizerKey: (key: string | null) => void;
@@ -129,9 +146,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // Database hydration & authentication
   const [isDbSyncing, setIsDbSyncing] = useState(false);
   const [isOrganizer, setIsOrganizer] = useState(false);
-  const [dbSource, setDbSource] = useState<'neon' | 'local_demo' | 'error'>('local_demo');
+  const [dbSource, setDbSource] = useState<'neon' | 'local_demo' | 'error' | 'local_custom'>('local_demo');
   const [hydrationError, setHydrationError] = useState<string | null>(null);
   const [organizerKey, setOrganizerKeyState] = useState<string | null>(null);
+
+  // Custom Event Workspace
+  const [customEvents, setCustomEvents] = useState<EventPlan[]>([]);
+  const [showCreateModal, setShowCreateModal] = useState(false);
 
   const setOrganizerKey = useCallback((key: string | null) => {
     setOrganizerKeyState(key);
@@ -175,7 +196,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           }
         }
 
-        const activeId = eventData.id || 'wedding-1';
+        // Load custom events list from localStorage
+        const rawCustom = localStorage.getItem('velmora_custom_events_v1');
+        if (rawCustom) {
+          try {
+            const parsedCustom = JSON.parse(rawCustom);
+            if (Array.isArray(parsedCustom)) {
+              setCustomEvents(parsedCustom);
+            }
+          } catch {}
+        }
+        const activeId = eventData.id || 'wedding-blr-2025';
         const cachedKey = localStorage.getItem(`velmora_key_${activeId}`);
         if (cachedKey) {
           setOrganizerKeyState(cachedKey);
@@ -227,6 +258,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       'milestone-50th-2025',
       ...Object.values(PRESETS).map((p) => p.event.id),
     ]);
+
+    // 0. If activeId is a custom event or marked as custom:
+    if (eventData.isCustom || activeId.startsWith('custom-')) {
+      setDbSource('local_custom');
+      setIsOrganizer(true);
+      setIsDbSyncing(false);
+      setHydrationError(null);
+      return;
+    }
 
     // 1. If activeId is a local demo preset and no URL event query was requested:
     // Pure Local Demo Workspace mode — DO NOT query Neon database!
@@ -768,6 +808,323 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     } catch {}
   }, []);
 
+  // ─── Custom Event Creation & Switching ──────────────────────────────────────
+  const createCustomEvent = useCallback((input: CreateCustomEventInput) => {
+    const id = `custom-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
+    const newEvent: EventPlan = {
+      id,
+      title: input.name,
+      category: input.category,
+      date: input.date,
+      city: input.city,
+      invitedCount: input.invitedCount,
+      confirmedRsvpCount: Math.round(input.invitedCount * 0.72),
+      totalBudget: input.totalBudget,
+      contingencyReservePercent: 10,
+      activeWhatsappGroupsReplaced: 4,
+      isCustom: true,
+    };
+
+    const venue = Math.round(input.totalBudget * 0.35);
+    const cateringAmount = Math.round(input.totalBudget * 0.30);
+    const decor = Math.round(input.totalBudget * 0.15);
+    const media = Math.round(input.totalBudget * 0.10);
+    const entertainment = input.totalBudget - (venue + cateringAmount + decor + media);
+
+    const newBudget: BudgetLineItem[] = [
+      {
+        id: `b-${id}-1`,
+        category: 'Venue & Banquets',
+        vendorName: `${input.city} Heritage Palace & Banquets`,
+        quotedAmount: venue,
+        committedInstalments: 0,
+        projectedFinalInvoice: venue,
+        overrunRiskReason: '',
+        quoteChallengeTip: 'Ask for setup day access without surcharge and waiver of corkage fees.',
+        backupVendorName: `${input.city} Royal Grandeur Lawn`,
+        backupVendorDelta: -Math.round(venue * 0.08),
+        confirmationStatus: 'confirmed_24h',
+        vendorPhone: '+91 98450 88771',
+      },
+      {
+        id: `b-${id}-2`,
+        category: 'Food & Beverage',
+        vendorName: 'Royal Saffron Catering Co.',
+        quotedAmount: cateringAmount,
+        committedInstalments: 0,
+        projectedFinalInvoice: cateringAmount,
+        overrunRiskReason: '',
+        quoteChallengeTip: 'Negotiate per-plate slabs and lock live counter staffing into fixed quote.',
+        backupVendorName: 'Annapurna Feast Master',
+        backupVendorDelta: -Math.round(cateringAmount * 0.05),
+        confirmationStatus: 'confirmed_24h',
+        vendorPhone: '+91 98451 99882',
+      },
+      {
+        id: `b-${id}-3`,
+        category: 'Décor & Production',
+        vendorName: 'Festive Vistas Floral & Truss Décor',
+        quotedAmount: decor,
+        committedInstalments: 0,
+        projectedFinalInvoice: decor,
+        overrunRiskReason: '',
+        quoteChallengeTip: 'Separate fresh floral purchase from truss rigging hire.',
+        backupVendorName: 'Mayura Design Studio',
+        backupVendorDelta: Math.round(decor * 0.04),
+        confirmationStatus: 'confirmed_24h',
+        vendorPhone: '+91 98452 77663',
+      },
+      {
+        id: `b-${id}-4`,
+        category: 'Photography & Media',
+        vendorName: 'Lumière Cinematic Studios',
+        quotedAmount: media,
+        committedInstalments: 0,
+        projectedFinalInvoice: media,
+        overrunRiskReason: '',
+        quoteChallengeTip: 'Ensure full raw footage transfer and eliminate physical album print markup.',
+        backupVendorName: 'Kala Frame Photography',
+        backupVendorDelta: -Math.round(media * 0.07),
+        confirmationStatus: 'confirmed_24h',
+        vendorPhone: '+91 98453 66554',
+      },
+      {
+        id: `b-${id}-5`,
+        category: 'Entertainment & Guest Ops',
+        vendorName: 'Swara Symphony Artists & DJ',
+        quotedAmount: entertainment,
+        committedInstalments: 0,
+        projectedFinalInvoice: entertainment,
+        overrunRiskReason: '',
+        quoteChallengeTip: 'Confirm acoustic sound check timings and sound permit clearances.',
+        backupVendorName: 'Dhwani Live Beats',
+        backupVendorDelta: -Math.round(entertainment * 0.05),
+        confirmationStatus: 'confirmed_24h',
+        vendorPhone: '+91 98454 55443',
+      },
+    ];
+
+    const perPlate = Math.round(cateringAmount / Math.max(1, input.invitedCount));
+    const p50 = Math.round(input.invitedCount * 0.82);
+    const p90 = Math.round(input.invitedCount * 0.94);
+    const newCatering: CateringMathModel = {
+      invitedCount: input.invitedCount,
+      rsvpConfirmed: Math.round(input.invitedCount * 0.72),
+      p50ExpectedTurnout: p50,
+      p90PeakTurnout: p90,
+      blindBufferPlates: Math.round(input.invitedCount * 1.15),
+      recommendedPlates: p90,
+      perPlateCost: perPlate,
+      jainPlates: Math.round(input.invitedCount * 0.14),
+      veganPlates: Math.round(input.invitedCount * 0.06),
+      allergySafePlates: Math.round(input.invitedCount * 0.04),
+      elderlySeatingCount: Math.round(input.invitedCount * 0.08),
+    };
+
+    const newRunSheet: RunSheetItem[] = [
+      {
+        id: `rs-${id}-1`,
+        baseTime: '09:00',
+        currentTime: '09:00',
+        durationMins: 90,
+        delayMins: 0,
+        title: 'Welcome Desk & VIP Check-in',
+        owner: 'Operations Desk',
+        status: 'completed',
+        dependencyNote: 'Welcome beverages and escorting active.',
+        vendorPhone: '+91 98450 11223',
+      },
+      {
+        id: `rs-${id}-2`,
+        baseTime: '11:00',
+        currentTime: '11:00',
+        durationMins: 120,
+        delayMins: 0,
+        title: 'Main Ceremonial Rituals / Keynote Opening',
+        owner: 'Lead Coordinator',
+        status: 'live',
+        dependencyNote: 'A/V live feed and ceremonial lighting primed.',
+        vendorPhone: '+91 98450 88771',
+      },
+      {
+        id: `rs-${id}-3`,
+        baseTime: '13:30',
+        currentTime: '13:30',
+        durationMins: 90,
+        delayMins: 0,
+        title: 'Grand Royal Banquet & Live Food Counters',
+        owner: 'Catering Lead',
+        status: 'upcoming',
+        dependencyNote: 'Buffet line inspection and live counters ready.',
+        vendorPhone: '+91 98451 99882',
+      },
+      {
+        id: `rs-${id}-4`,
+        baseTime: '17:00',
+        currentTime: '17:00',
+        durationMins: 120,
+        delayMins: 0,
+        title: 'Cultural Performances & Special Presentations',
+        owner: 'Stage Director',
+        status: 'upcoming',
+        dependencyNote: 'Microphones and lighting presets tested.',
+        vendorPhone: '+91 98454 55443',
+      },
+      {
+        id: `rs-${id}-5`,
+        baseTime: '20:00',
+        currentTime: '20:00',
+        durationMins: 90,
+        delayMins: 0,
+        title: 'Grand Gala Finale & Family Felicitations',
+        owner: 'MC & Coordinator',
+        status: 'upcoming',
+        dependencyNote: 'Confetti and closing music cue primed.',
+        vendorPhone: '+91 98453 66554',
+      },
+    ];
+
+    const newGuests: Guest[] = [
+      {
+        id: `g-${id}-1`,
+        name: 'Rajesh & Sunita Sharma',
+        phone: '+91 98450 11223',
+        dietary: 'standard',
+        accessibilityTags: ['ground_floor_room'],
+        rsvpStatus: 'confirmed',
+        plusOnes: 1,
+        notes: 'Family VIP table 1.',
+      },
+      {
+        id: `g-${id}-2`,
+        name: 'Ananya Deshmukh',
+        phone: '+91 98765 43210',
+        dietary: 'jain',
+        accessibilityTags: ['wheelchair_ramp'],
+        rsvpStatus: 'confirmed',
+        plusOnes: 0,
+        notes: 'Requires wheelchair ramp assistance.',
+      },
+      {
+        id: `g-${id}-3`,
+        name: 'Vikram & Priya Mehta',
+        phone: '+91 91234 56789',
+        dietary: 'vegan',
+        accessibilityTags: ['low_decibel_zone'],
+        rsvpStatus: 'confirmed',
+        plusOnes: 1,
+        notes: 'Dairy-free seating near garden.',
+      },
+      {
+        id: `g-${id}-4`,
+        name: 'Kavita Nair',
+        phone: '+91 94481 22334',
+        dietary: 'nut_free',
+        accessibilityTags: [],
+        rsvpStatus: 'pending',
+        plusOnes: 0,
+        notes: 'RSVP reminder scheduled.',
+      },
+      {
+        id: `g-${id}-5`,
+        name: 'Arjun Somani',
+        phone: '+91 99887 76655',
+        dietary: 'standard',
+        accessibilityTags: ['elderly_seating'],
+        rsvpStatus: 'confirmed',
+        plusOnes: 0,
+        notes: 'Reserved front row seating.',
+      },
+    ];
+
+    const newSuggestions: PlanSuggestion[] = [
+      {
+        id: `sug-${id}-1`,
+        phase: 'Pre-Event',
+        title: `${input.city} Vendor Negotiation Optimization`,
+        estimatedCost: Math.round(input.totalBudget * 0.03),
+        costRationale: 'Lock comprehensive contract with penalty clauses for delayed sound setup.',
+        wasteImpact: 'Biodegradable serveware saves ~18 kg plastic waste.',
+        accessibilityNote: 'Ensure zero-step entry to banquet and clear aisles.',
+        status: 'approved',
+      },
+    ];
+
+    const newScenarios: StressScenario[] = [
+      {
+        id: `sc-${id}-1`,
+        triggerType: 'guest_surge_20',
+        title: '+15% Guest Surge at Reception',
+        probability: 0.35,
+        financialImpact: Math.round(perPlate * (input.invitedCount * 0.12)),
+        scheduleImpactMins: 15,
+        backupVendorUsed: 'Annapurna Feast Master',
+        recoveryChecklist: [
+          'Deploy tier-2 catering reserve and open outer lawn seating',
+          'Release standby plates from buffer stock',
+          'Signal live counter to speed replenishment',
+        ],
+        applied: false,
+      },
+    ];
+
+    // Update active celebration state
+    setEvent(newEvent);
+    setBudget(newBudget);
+    setCatering(newCatering);
+    setRunSheet(newRunSheet);
+    setGuests(newGuests);
+    setSuggestions(newSuggestions);
+    setScenarios(newScenarios);
+    setDbSource('local_custom');
+    setIsOrganizer(true);
+    setHydrationError(null);
+
+    // Persist to custom events registry and local state
+    setCustomEvents((prev) => {
+      const filtered = prev.filter((e) => e.id !== id);
+      const updated = [newEvent, ...filtered];
+      try {
+        localStorage.setItem('velmora_custom_events_v1', JSON.stringify(updated));
+        localStorage.setItem(`velmora_custom_state_${id}`, JSON.stringify({
+          event: newEvent,
+          budget: newBudget,
+          catering: newCatering,
+          runSheet: newRunSheet,
+          guests: newGuests,
+          suggestions: newSuggestions,
+          scenarios: newScenarios,
+        }));
+      } catch (err) {
+        console.warn('Failed to persist custom event to localStorage:', err);
+      }
+      return updated;
+    });
+
+    return { id, success: true };
+  }, []);
+
+  const switchToCustomEvent = useCallback((id: string) => {
+    try {
+      const raw = localStorage.getItem(`velmora_custom_state_${id}`);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed.event) setEvent(parsed.event);
+        if (parsed.budget) setBudget(parsed.budget);
+        if (parsed.catering) setCatering(parsed.catering);
+        if (parsed.runSheet) setRunSheet(parsed.runSheet);
+        if (parsed.guests) setGuests(parsed.guests);
+        if (parsed.suggestions) setSuggestions(parsed.suggestions);
+        if (parsed.scenarios) setScenarios(parsed.scenarios);
+        setDbSource('local_custom');
+        setIsOrganizer(true);
+        setHydrationError(null);
+      }
+    } catch (e) {
+      console.warn('Failed to switch to custom event:', e);
+    }
+  }, []);
+
   // ─── Dynamic Derived Calculations ───────────────────────────────────────────
   const catering: CateringMathModel = useMemo(() => {
     const confirmedGuests = guests.filter((g) => g.rsvpStatus === 'confirmed');
@@ -872,6 +1229,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setThemeTemplate,
     executiveView,
     setExecutiveView,
+    customEvents,
+    createCustomEvent,
+    switchToCustomEvent,
+    showCreateModal,
+    setShowCreateModal,
     isDbSyncing,
     isOrganizer,
     dbSource,
