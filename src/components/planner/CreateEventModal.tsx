@@ -9,7 +9,6 @@ import {
   Users,
   IndianRupee,
   PartyPopper,
-  Check,
   AlertCircle,
   Building,
   Utensils,
@@ -49,17 +48,26 @@ export function CreateEventModal({ isOpen, onClose }: Props) {
   // Form State
   const [name, setName] = useState('');
   const [category, setCategory] = useState<EventCategory>('wedding');
-  const [date, setDate] = useState(() => {
-    // Default to 45 days in future
-    const d = new Date();
-    d.setDate(d.getDate() + 45);
-    return d.toISOString().split('T')[0];
-  });
+  const [date, setDate] = useState('');
   const [city, setCity] = useState('Bengaluru');
   const [invitedCount, setInvitedCount] = useState<number>(250);
   const [totalBudget, setTotalBudget] = useState<number>(1850000);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Set default date safely when modal opens on client (never during SSR or static prerendering)
+  useEffect(() => {
+    if (!isOpen) return;
+    const timer = setTimeout(() => {
+      setDate((prev) => {
+        if (prev) return prev;
+        const d = new Date();
+        d.setDate(d.getDate() + 45);
+        return d.toISOString().split('T')[0];
+      });
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [isOpen]);
 
   // Close on ESC
   useEffect(() => {
@@ -89,7 +97,12 @@ export function CreateEventModal({ isOpen, onClose }: Props) {
     if (!name || name.trim().length < 3) {
       errs.name = 'Celebration name must be at least 3 characters.';
     }
-    if (!date) {
+    const resolvedDate = date || (() => {
+      const d = new Date();
+      d.setDate(d.getDate() + 45);
+      return d.toISOString().split('T')[0];
+    })();
+    if (!resolvedDate) {
       errs.date = 'Please select a valid event date.';
     }
     if (!city || city.trim().length < 2) {
@@ -114,10 +127,16 @@ export function CreateEventModal({ isOpen, onClose }: Props) {
 
     setIsSubmitting(true);
     try {
+      const resolvedDate = date || (() => {
+        const d = new Date();
+        d.setDate(d.getDate() + 45);
+        return d.toISOString().split('T')[0];
+      })();
+
       const input: CreateCustomEventInput = {
         name: name.trim(),
         category,
-        date,
+        date: resolvedDate,
         city: city.trim(),
         invitedCount: Number(invitedCount),
         totalBudget: Number(totalBudget),
@@ -459,3 +478,4 @@ export function CreateEventModal({ isOpen, onClose }: Props) {
     </div>
   );
 }
+

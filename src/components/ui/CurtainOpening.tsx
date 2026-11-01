@@ -33,6 +33,7 @@ export function CurtainOpening({ onComplete }: CurtainOpeningProps) {
 
   // Initialize realistic curtain sequence
   useEffect(() => {
+    let initTimer: NodeJS.Timeout;
     let openTimer: NodeJS.Timeout;
     let endTimer: NodeJS.Timeout;
 
@@ -43,9 +44,11 @@ export function CurtainOpening({ onComplete }: CurtainOpeningProps) {
       window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     if (prefersReducedMotion) {
-      setIsRendered(false);
-      onComplete?.();
-      return;
+      initTimer = setTimeout(() => {
+        setIsRendered(false);
+        onComplete?.();
+      }, 0);
+      return () => clearTimeout(initTimer);
     }
 
     try {
@@ -55,9 +58,11 @@ export function CurtainOpening({ onComplete }: CurtainOpeningProps) {
 
       // If user previously dismissed the curtain in this tab and didn't request replay, bypass
       if (dismissed === 'true' && !forceReplay) {
-        setIsRendered(false);
-        onComplete?.();
-        return;
+        initTimer = setTimeout(() => {
+          setIsRendered(false);
+          onComplete?.();
+        }, 0);
+        return () => clearTimeout(initTimer);
       }
 
       if (typeof document !== 'undefined' && document.activeElement instanceof HTMLElement) {
@@ -76,11 +81,14 @@ export function CurtainOpening({ onComplete }: CurtainOpeningProps) {
         onComplete?.();
       }, 3000);
     } catch {
-      setIsRendered(false);
-      onComplete?.();
+      initTimer = setTimeout(() => {
+        setIsRendered(false);
+        onComplete?.();
+      }, 0);
     }
 
     return () => {
+      clearTimeout(initTimer);
       clearTimeout(openTimer);
       clearTimeout(endTimer);
     };

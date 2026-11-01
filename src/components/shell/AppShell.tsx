@@ -275,7 +275,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       <CelebrationMoment />
 
       {/* ── Judge-Ready Custom Celebration Creation Modal ── */}
-      <CreateEventModal isOpen={showCreateModal} onClose={() => setShowCreateModal(false)} />
+      {showCreateModal && (
+        <CreateEventModal isOpen={showCreateModal} onClose={() => setShowCreateModal(false)} />
+      )}
 
       {/* ── Floating AI Celebration Concierge Slide-over Drawer ── */}
       <ChatPanel />

@@ -143,31 +143,34 @@ function GuestInviteContent({ params }: PageProps) {
   const [customEventMeta, setCustomEventMeta] = useState<{ title?: string; city?: string; date?: string } | null>(null);
 
   React.useEffect(() => {
-    try {
-      const rawCustomState = localStorage.getItem(`velmora_custom_state_${eventId}`);
-      if (rawCustomState) {
-        const parsed = JSON.parse(rawCustomState);
-        if (parsed.event) {
-          setCustomEventMeta({
-            title: parsed.event.title,
-            city: parsed.event.city,
-            date: parsed.event.date,
-          });
-          return;
+    const timer = setTimeout(() => {
+      try {
+        const rawCustomState = localStorage.getItem(`velmora_custom_state_${eventId}`);
+        if (rawCustomState) {
+          const parsed = JSON.parse(rawCustomState);
+          if (parsed.event) {
+            setCustomEventMeta({
+              title: parsed.event.title,
+              city: parsed.event.city,
+              date: parsed.event.date,
+            });
+            return;
+          }
         }
-      }
-      const rawState = localStorage.getItem(STORAGE_KEY);
-      if (rawState) {
-        const parsed = JSON.parse(rawState);
-        if (parsed.event && (parsed.event.id === eventId || parsed.event.isCustom)) {
-          setCustomEventMeta({
-            title: parsed.event.title,
-            city: parsed.event.city,
-            date: parsed.event.date,
-          });
+        const rawState = localStorage.getItem(STORAGE_KEY);
+        if (rawState) {
+          const parsed = JSON.parse(rawState);
+          if (parsed.event && (parsed.event.id === eventId || parsed.event.isCustom)) {
+            setCustomEventMeta({
+              title: parsed.event.title,
+              city: parsed.event.city,
+              date: parsed.event.date,
+            });
+          }
         }
-      }
-    } catch {}
+      } catch {}
+    }, 0);
+    return () => clearTimeout(timer);
   }, [eventId]);
 
   const t = CONTENT[lang];

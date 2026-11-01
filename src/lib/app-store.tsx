@@ -429,7 +429,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setIsDbSyncing(false);
     }
-  }, [eventData.id, organizerKey]);
+  }, [eventData.id, eventData.isCustom, organizerKey]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
